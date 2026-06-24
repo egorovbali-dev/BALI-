@@ -269,7 +269,7 @@ main{padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
   </aside>
 
   <main>
-    <div class="setup-banner" id="setup-banner">
+    <div class="setup-banner hidden" id="setup-banner">
       <div class="setup-ico">🔗</div>
       <div class="setup-body">
         <div class="setup-title">Настройте синхронизацию между устройствами</div>
@@ -524,36 +524,54 @@ function startPolling(){
 }
 
 // ── INIT ──────────────────────────────────────────────────────
+const HARDCODED_KEY = '$2a$10$I8BRmXp1CYTny1diRsqN2exeoIWYvXiwK3m9o10Sp/FxrlHwmONpu';
+
 function init(){
   lLoad();
-  apiKey  = localStorage.getItem(LS_APIKEY);
-  binId   = localStorage.getItem(LS_BIN);
+  // Use hardcoded key — no manual entry needed
+  apiKey = HARDCODED_KEY;
+  localStorage.setItem(LS_APIKEY, apiKey);
+  binId = localStorage.getItem(LS_BIN);
   if(!tasks.length) tasks = SAMPLES.map(s=>({...s,id:uid(),done:false,created:Date.now()}));
 
-  if(apiKey){
-    document.getElementById('setup-banner').classList.add('hidden');
-    setSync('syncing','загрузка...');
-    (async()=>{
-      try{
+  document.getElementById('setup-banner').classList.add('hidden');
+  setSync('syncing','загрузка...');
+
+  (async()=>{
+    try{
+      if(!binId){
+        // First time — create a new bin
+        await binCreate();
+        setSync('ok','облако создано');
+        showToast('☁ Облако подключено!');
+      } else {
         const remote = await binRead();
-        if(remote.length){
+        if(remote && remote.length){
           tasks = remote; lSave();
           pollSig = sig(tasks);
           setSync('ok','синхронизировано');
+          showToast('✓ Задачи загружены с облака');
         } else {
           await binWrite(); pollSig = sig(tasks);
-          setSync('ok','загружено');
+          setSync('ok','данные сохранены');
         }
+      }
+    } catch(e) {
+      // Bin might be deleted — recreate
+      localStorage.removeItem(LS_BIN);
+      binId = null;
+      try {
+        await binCreate();
+        setSync('ok','облако восстановлено');
       } catch {
         setSync('err','нет связи — офлайн');
       }
-      render();
-      setTimeout(()=>setSync('idle','онлайн'),3000);
-      startPolling();
-    })();
-  } else {
-    setSync('idle','офлайн');
-  }
+    }
+    render();
+    setTimeout(()=>setSync('idle','онлайн'),3000);
+    startPolling();
+  })();
+
   render();
 }
 
