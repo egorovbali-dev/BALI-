@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bali Planner">
+<title>Bali Build Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0f1a12;--surf:#182218;--surf2:#1e2d1e;--card:#1a2a1a;
+  --b1:#2d3d2d;--b2:#3a4e3a;
+  --gold:#c9972a;--gold2:#f0c04a;--gold-dim:rgba(201,151,42,.18);
+  --t1:#e8ede0;--t2:#92a882;--t3:#5a6e52;
+  --err:#d94f4f;--err-bg:rgba(217,79,79,.15);--err-b:rgba(217,79,79,.4);
+  --warn:#d98a2c;--warn-bg:rgba(217,138,44,.15);--warn-b:rgba(217,138,44,.4);
+  --ok:#4aaa6a;--ok-bg:rgba(74,170,106,.15);--ok-b:rgba(74,170,106,.4);
+  --info:#3a8abf;--info-bg:rgba(58,138,191,.15);
+  --r:8px;--rl:12px;--rxl:16px;
+}
+html{height:100%}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--t1);min-height:100%;font-size:14px;line-height:1.5}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--b1);border-radius:2px}
+
+/* ─── HEADER ─── */
+header{
+  background:var(--surf);border-bottom:1px solid var(--b1);
+  padding:0 20px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:50;gap:12px;
+}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:var(--gold2);display:flex;align-items:center;gap:9px;white-space:nowrap}
+.logo-icon{width:30px;height:30px;background:var(--gold-dim);border:1px solid var(--gold);border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px}
+.hdr-right{display:flex;align-items:center;gap:8px}
+.sync-pill{
+  font-size:11px;padding:5px 10px;border-radius:20px;
+  border:1px solid var(--b1);color:var(--t3);background:var(--surf2);
+  display:flex;align-items:center;gap:5px;white-space:nowrap;cursor:default;
+}
+.sync-pill.ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok-b)}
+.sync-pill.syncing{color:var(--warn);background:var(--warn-bg);border-color:var(--warn-b)}
+.sync-pill.err{color:var(--err);background:var(--err-bg);border-color:var(--err-b)}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .9s linear infinite}
+.btn-add{
+  background:var(--gold);color:#0f1a12;border:none;border-radius:var(--r);
+  padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:5px;white-space:nowrap;
+  transition:background .15s;
+}
+.btn-add:hover{background:var(--gold2)}
+.btn-add:active{opacity:.8}
+
+/* ─── LAYOUT ─── */
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 56px)}
+
+/* ─── SIDEBAR ─── */
+aside{background:var(--surf);border-right:1px solid var(--b1);padding:16px 0;overflow-y:auto}
+.sb-section{margin-bottom:6px}
+.sb-label{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;padding:0 16px 6px}
+.sb-btn{
+  width:100%;text-align:left;background:none;border:none;color:var(--t2);
+  padding:9px 16px;cursor:pointer;font-size:13px;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:all .12s;
+}
+.sb-btn:hover{background:var(--surf2);color:var(--t1)}
+.sb-btn.on{background:var(--gold-dim);color:var(--gold2);border-right:2px solid var(--gold)}
+.sb-btn .cnt{background:var(--surf2);color:var(--t3);font-size:11px;padding:2px 7px;border-radius:10px}
+.sb-btn.on .cnt{background:var(--gold-dim);color:var(--gold)}
+.sb-divider{height:1px;background:var(--b1);margin:10px 16px}
+.sb-clear{width:calc(100% - 32px);margin:10px 16px 0;background:none;border:1px solid var(--b1);border-radius:var(--r);color:var(--t3);font-size:12px;padding:7px;cursor:pointer;transition:all .12s}
+.sb-clear:hover{border-color:var(--err);color:var(--err)}
+
+/* ─── MAIN ─── */
+main{padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:140px;position:relative}
+.search-wrap input{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:var(--r);padding:9px 12px 9px 34px;color:var(--t1);font-size:13px;outline:none;transition:border-color .15s}
+.search-wrap input:focus{border-color:var(--gold)}
+.search-wrap input::placeholder{color:var(--t3)}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--t3);font-size:15px;pointer-events:none}
+.sort-sel{background:var(--card);border:1px solid var(--b1);border-radius:var(--r);color:var(--t2);font-size:13px;padding:9px 11px;outline:none;cursor:pointer}
+.sort-sel:focus{border-color:var(--gold)}
+
+/* ─── STATS ─── */
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.stat{background:var(--card);border:1px solid var(--b1);border-radius:var(--rl);padding:12px 14px}
+.stat-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.stat-v{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;color:var(--t1)}
+.stat-v.warn{color:var(--warn)}.stat-v.err{color:var(--err)}.stat-v.ok{color:var(--ok)}
+
+/* ─── TASKS ─── */
+.tasks{display:flex;flex-direction:column;gap:7px}
+.tcard{
+  background:var(--card);border:1px solid var(--b1);border-radius:var(--rl);
+  padding:13px 14px;cursor:default;transition:border-color .15s;position:relative;
+}
+.tcard:hover{border-color:var(--b2)}
+.tcard.ph{border-left:3px solid var(--err);border-radius:0 var(--rl) var(--rl) 0}
+.tcard.pm{border-left:3px solid var(--warn);border-radius:0 var(--rl) var(--rl) 0}
+.tcard.pl{border-left:3px solid var(--ok);border-radius:0 var(--rl) var(--rl) 0}
+.tcard.done{opacity:.48}
+.tcard.done .tc-title{text-decoration:line-through}
+.tc-row{display:flex;align-items:flex-start;gap:9px;margin-bottom:7px}
+.chk{
+  width:20px;height:20px;border-radius:50%;border:1.5px solid var(--b2);
+  background:none;flex-shrink:0;margin-top:1px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all .15s;padding:0;
+}
+.chk:hover{border-color:var(--ok)}
+.chk.on{background:var(--ok-bg);border-color:var(--ok-b)}
+.chk.on::after{content:'✓';font-size:11px;font-weight:700;color:var(--ok)}
+.tc-title{font-size:14px;font-weight:500;color:var(--t1);flex:1;word-break:break-word}
+.tc-desc{font-size:12px;color:var(--t3);margin:0 0 8px 29px;word-break:break-word}
+.tc-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-left:29px}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;font-weight:500;white-space:nowrap}
+.bw{background:var(--info-bg);color:var(--info)}
+.bp{background:var(--gold-dim);color:var(--gold)}
+.bh{background:var(--err-bg);color:var(--err)}
+.bm{background:var(--warn-bg);color:var(--warn)}
+.bl{background:var(--ok-bg);color:var(--ok)}
+.bmeta{font-size:11px;color:var(--t3)}
+.bmeta.ov{color:var(--err)}
+.tc-actions{position:absolute;right:10px;top:10px;display:none;gap:4px}
+.tcard:hover .tc-actions{display:flex}
+.act{background:var(--surf);border:1px solid var(--b1);border-radius:var(--r);color:var(--t3);padding:4px 9px;font-size:12px;cursor:pointer;transition:all .12s}
+.act:hover{color:var(--t1);border-color:var(--b2)}
+.act.del:hover{color:var(--err);border-color:var(--err-b)}
+
+.empty{text-align:center;padding:52px 20px;color:var(--t3)}
+.empty-ico{font-size:38px;margin-bottom:12px}
+.empty-t{font-size:15px;color:var(--t2);margin-bottom:5px}
+
+/* ─── MODAL ─── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:100;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--surf);border:1px solid var(--b2);border-radius:var(--rxl);padding:24px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal-ttl{font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:var(--gold2);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;color:var(--t3);font-size:22px;cursor:pointer;line-height:1;padding:2px}
+.modal-close:hover{color:var(--t1)}
+.frow{margin-bottom:14px}
+.flbl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
+.finput{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);padding:10px 12px;font-size:14px;outline:none;font-family:inherit;transition:border-color .15s}
+.finput:focus{border-color:var(--gold)}
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.btn-cancel{background:none;border:1px solid var(--b1);border-radius:var(--r);color:var(--t2);padding:10px 20px;font-size:14px;cursor:pointer;transition:all .12s}
+.btn-cancel:hover{border-color:var(--t2)}
+.btn-save{background:var(--gold);border:none;border-radius:var(--r);color:#0f1a12;padding:10px 24px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-save:hover{background:var(--gold2)}
+
+/* ─── SETUP BANNER ─── */
+.setup-banner{
+  background:var(--warn-bg);border:1px solid var(--warn-b);border-radius:var(--rl);
+  padding:14px 16px;display:flex;align-items:flex-start;gap:12px;
+}
+.setup-banner.hidden{display:none}
+.setup-ico{font-size:20px;flex-shrink:0;margin-top:1px}
+.setup-body{flex:1}
+.setup-title{font-size:13px;font-weight:600;color:var(--warn);margin-bottom:4px}
+.setup-text{font-size:12px;color:var(--t2);line-height:1.6}
+.setup-inp{width:100%;background:var(--card);border:1px solid var(--b1);border-radius:var(--r);color:var(--t1);padding:8px 11px;font-size:13px;outline:none;margin-top:8px;font-family:monospace}
+.setup-inp:focus{border-color:var(--gold)}
+.setup-btns{display:flex;gap:8px;margin-top:8px}
+.btn-sm{padding:7px 14px;border-radius:var(--r);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.btn-sm:active{opacity:.75}
+.btn-sm-p{background:var(--gold);color:#0f1a12}
+.btn-sm-s{background:var(--surf2);border:1px solid var(--b1);color:var(--t2)}
+
+/* ─── TOAST ─── */
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--surf2);border:1px solid var(--b2);border-radius:var(--rl);
+  padding:10px 18px;font-size:13px;color:var(--t2);
+  opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;z-index:200;
+  box-shadow:0 4px 20px rgba(0,0,0,.35);
+}
+.toast.show{opacity:1}
+
+/* ─── MOBILE ─── */
+@media(max-width:700px){
+  .layout{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  aside{display:none}
+  aside.mob-open{
+    display:block;position:fixed;inset:0;z-index:60;
+    padding-top:56px;overflow-y:auto;
+  }
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:55}
+  .mob-overlay.show{display:block}
+  .btn-menu{display:flex}
+  .logo-text-full{display:none}
+  .logo-text-short{display:block}
+  main{padding:14px}
+  .stats{grid-template-columns:repeat(2,1fr);gap:8px}
+  .stat-v{font-size:20px}
+  .hdr-right .sync-pill span{display:none}
+  .tcard.ph,.tcard.pm,.tcard.pl{padding-left:14px}
+  .tc-actions{display:flex;position:static;margin-top:10px;border-top:1px solid var(--b1);padding-top:9px}
+  .act{flex:1;text-align:center;padding:8px 4px}
+  .fgrid{grid-template-columns:1fr}
+}
+@media(min-width:701px){
+  .btn-menu{display:none}
+  .logo-text-full{display:block}
+  .logo-text-short{display:none}
+  .mob-overlay{display:none!important}
+}
+.btn-menu{
+  background:none;border:1px solid var(--b1);border-radius:var(--r);
+  color:var(--t2);padding:7px 10px;font-size:18px;cursor:pointer;
+  align-items:center;justify-content:center;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn-menu" id="btn-menu" onclick="toggleMenu()" aria-label="Меню">☰</button>
+    <div class="logo">
+      <div class="logo-icon">🏛</div>
+      <span class="logo-text-full">Bali Build Planner</span>
+      <span class="logo-text-short">Bali</span>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="sync-pill" id="sync-pill">⟳ <span>загрузка</span></div>
+    <button class="btn-add" onclick="openModal(null)">+ Задача</button>
+  </div>
+</header>
+
+<div class="mob-overlay" id="mob-overlay" onclick="closeMenu()"></div>
+
+<div class="layout">
+  <aside id="sidebar">
+    <div class="sb-section">
+      <div class="sb-label">Просмотр</div>
+      <button class="sb-btn on" data-f="all" onclick="setF('all',this)">Все задачи <span class="cnt" id="c-all">0</span></button>
+      <button class="sb-btn" data-f="today" onclick="setF('today',this)">На сегодня <span class="cnt" id="c-today">0</span></button>
+      <button class="sb-btn" data-f="overdue" onclick="setF('overdue',this)">Просроченные <span class="cnt" id="c-over">0</span></button>
+      <button class="sb-btn" data-f="done" onclick="setF('done',this)">Выполненные <span class="cnt" id="c-done">0</span></button>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Категория</div>
+      <button class="sb-btn" data-f="work" onclick="setF('work',this)">🏗 Стройка <span class="cnt" id="c-work">0</span></button>
+      <button class="sb-btn" data-f="personal" onclick="setF('personal',this)">🏠 Быт <span class="cnt" id="c-personal">0</span></button>
+    </div>
+    <div class="sb-divider"></div>
+    <div class="sb-section">
+      <div class="sb-label">Приоритет</div>
+      <button class="sb-btn" data-f="high" onclick="setF('high',this)">🔴 Высокий <span class="cnt" id="c-high">0</span></button>
+      <button class="sb-btn" data-f="medium" onclick="setF('medium',this)">🟡 Средний <span class="cnt" id="c-medium">0</span></button>
+      <button class="sb-btn" data-f="low" onclick="setF('low',this)">🟢 Низкий <span class="cnt" id="c-low">0</span></button>
+    </div>
+    <div class="sb-divider"></div>
+    <button class="sb-clear" onclick="clearDone()">Удалить выполненные</button>
+  </aside>
+
+  <main>
+    <div class="setup-banner" id="setup-banner">
+      <div class="setup-ico">🔗</div>
+      <div class="setup-body">
+        <div class="setup-title">Настройте синхронизацию между устройствами</div>
+        <div class="setup-text">
+          1. Откройте <strong>jsonbin.io</strong> → Sign Up (бесплатно)<br>
+          2. API Keys → Create Access Key → скопируйте ключ<br>
+          3. Вставьте ключ ниже и нажмите «Подключить»
+        </div>
+        <input class="setup-inp" id="api-key-inp" type="text" placeholder="$2a$10$ваш-ключ-сюда..." autocomplete="off" spellcheck="false">
+        <div class="setup-btns">
+          <button class="btn-sm btn-sm-p" onclick="connectCloud()">🔌 Подключить</button>
+          <button class="btn-sm btn-sm-s" onclick="dismissSetup()">Работать офлайн</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="q" placeholder="Найти задачу..." oninput="render()">
+      </div>
+      <select class="sort-sel" id="sort" onchange="render()">
+        <option value="date">По дате</option>
+        <option value="priority">По приоритету</option>
+        <option value="alpha">По алфавиту</option>
+      </select>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="stat-l">Всего</div><div class="stat-v" id="s-all">0</div></div>
+      <div class="stat"><div class="stat-l">Сегодня</div><div class="stat-v warn" id="s-today">0</div></div>
+      <div class="stat"><div class="stat-l">Просрочено</div><div class="stat-v err" id="s-over">0</div></div>
+      <div class="stat"><div class="stat-l">Выполнено</div><div class="stat-v ok" id="s-done">0</div></div>
+    </div>
+
+    <div class="tasks" id="tlist"></div>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="overlay" id="overlay" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="modal-ttl">
+      <span id="modal-ttl">Новая задача</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="frow">
+      <label class="flbl">Название *</label>
+      <input type="text" class="finput" id="f-title" placeholder="Что нужно сделать?">
+    </div>
+    <div class="frow">
+      <label class="flbl">Описание</label>
+      <textarea class="finput" id="f-desc" rows="2" style="resize:vertical" placeholder="Детали..."></textarea>
+    </div>
+    <div class="fgrid">
+      <div class="frow">
+        <label class="flbl">Категория</label>
+        <select class="finput" id="f-cat">
+          <option value="work">🏗 Стройка</option>
+          <option value="personal">🏠 Быт</option>
+        </select>
+      </div>
+      <div class="frow">
+        <label class="flbl">Приоритет</label>
+        <select class="finput" id="f-pri">
+          <option value="high">🔴 Высокий</option>
+          <option value="medium" selected>🟡 Средний</option>
+          <option value="low">🟢 Низкий</option>
+        </select>
+      </div>
+    </div>
+    <div class="fgrid">
+      <div class="frow">
+        <label class="flbl">Дата</label>
+        <input type="date" class="finput" id="f-date">
+      </div>
+      <div class="frow">
+        <label class="flbl">Напоминание</label>
+        <input type="time" class="finput" id="f-time">
+      </div>
+    </div>
+    <div class="frow">
+      <label class="flbl">Исполнитель</label>
+      <input type="text" class="finput" id="f-who" placeholder="Ваян, Мэй...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-save" onclick="saveTask()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const LS_KEY   = 'bali_v5_tasks';
+const LS_BIN   = 'bali_v5_bin';
+const LS_APIKEY= 'bali_v5_apikey';
+const JSONBIN  = 'https://api.jsonbin.io/v3/b';
+
+let tasks   = [];
+let curF    = 'all';
+let editId  = null;
+let binId   = null;
+let apiKey  = null;
+let pollSig = '';
+let fired   = new Set();
+let polling = null;
+
+// ── SAMPLES ──────────────────────────────────────────────────
+const SAMPLES=[
+  {title:'Принять поставку арматуры',desc:'Проверить сертификаты и количество',cat:'work',priority:'high',date:td(),time:'09:00',assign:'Ваян'},
+  {title:'Совещание с прорабом по фундаменту',desc:'Обсудить отклонение от проекта',cat:'work',priority:'high',date:td(),time:'11:00',assign:'Мэй'},
+  {title:'Проверить кладку второго этажа',desc:'Контроль шва и горизонта',cat:'work',priority:'medium',date:tdp(1),time:'14:00',assign:'Ваян'},
+  {title:'Оплатить аренду виллы',desc:'',cat:'personal',priority:'medium',date:tdp(3),time:'',assign:''},
+  {title:'Заказать краску Ace Hardware Denpasar',desc:'Interior + exterior',cat:'work',priority:'low',date:tdp(5),time:'',assign:''},
+  {title:'Подготовить отчёт для инвестора',desc:'Фото + прогресс + смета',cat:'work',priority:'high',date:tdp(-1),time:'',assign:''},
+  {title:'Запись к стоматологу',desc:'',cat:'personal',priority:'low',date:tdp(7),time:'',assign:''},
+];
+
+// ── UTILS ─────────────────────────────────────────────────────
+function uid(){return Math.random().toString(36).slice(2,8)+Date.now().toString(36)}
+function td(){return new Date().toISOString().split('T')[0]}
+function tdp(n){const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().split('T')[0]}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function sig(arr){const s=JSON.stringify(arr);return s.length+'|'+s.slice(-12)}
+
+// ── SYNC STATUS ───────────────────────────────────────────────
+function setSync(state, msg){
+  const el = document.getElementById('sync-pill');
+  const icons = {idle:'☁',syncing:'⟳',ok:'✓',err:'⚠'};
+  const ic = icons[state]||'☁';
+  el.className = 'sync-pill' + (state==='ok'?' ok':state==='syncing'?' syncing':state==='err'?' err':'');
+  el.innerHTML = `<span class="${state==='syncing'?'spin':''}">${ic}</span> <span>${msg}</span>`;
+}
+
+// ── LOCAL STORAGE ─────────────────────────────────────────────
+function lSave(){try{localStorage.setItem(LS_KEY,JSON.stringify(tasks));}catch{}}
+function lLoad(){
+  try{const r=localStorage.getItem(LS_KEY);if(r)tasks=JSON.parse(r);}
+  catch{tasks=SAMPLES.map(s=>({...s,id:uid(),done:false,created:Date.now()}))}
+}
+
+// ── JSONBIN API ───────────────────────────────────────────────
+async function binCreate(){
+  const res = await fetch(JSONBIN,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','X-Master-Key':apiKey,'X-Bin-Name':'BaliPlanner','X-Bin-Private':'false'},
+    body:JSON.stringify({tasks})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const j = await res.json();
+  binId = j.metadata.id;
+  localStorage.setItem(LS_BIN, binId);
+  return binId;
+}
+
+async function binRead(){
+  const res = await fetch(`${JSONBIN}/${binId}/latest`,{
+    headers:{'X-Master-Key':apiKey,'X-Access-Key':apiKey}
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  const j = await res.json();
+  return j.record.tasks || [];
+}
+
+async function binWrite(){
+  const res = await fetch(`${JSONBIN}/${binId}`,{
+    method:'PUT',
+    headers:{'Content-Type':'application/json','X-Master-Key':apiKey,'X-Access-Key':apiKey},
+    body:JSON.stringify({tasks})
+  });
+  if(!res.ok) throw new Error('HTTP '+res.status);
+}
+
+// ── CONNECT CLOUD ─────────────────────────────────────────────
+async function connectCloud(){
+  const key = document.getElementById('api-key-inp').value.trim();
+  if(!key){showToast('Введите API-ключ');return;}
+  apiKey = key;
+  localStorage.setItem(LS_APIKEY, apiKey);
+  setSync('syncing','подключение...');
+  try{
+    binId = localStorage.getItem(LS_BIN);
+    if(!binId){
+      await binCreate();
+      showToast('☁ Облако подключено! Данные загружены');
+    } else {
+      const remote = await binRead();
+      if(remote.length >= tasks.length){
+        tasks = remote; lSave();
+        showToast('☁ Синхронизировано с облаком');
+      } else {
+        await binWrite();
+        showToast('☁ Облако подключено!');
+      }
+    }
+    pollSig = sig(tasks);
+    document.getElementById('setup-banner').classList.add('hidden');
+    setSync('ok','синхронизировано');
+    render();
+    startPolling();
+    setTimeout(()=>setSync('idle','онлайн'),3000);
+  } catch(e){
+    setSync('err','ошибка подключения');
+    showToast('Ошибка: проверьте API-ключ');
+    apiKey=null;localStorage.removeItem(LS_APIKEY);
+  }
+}
+
+function dismissSetup(){
+  document.getElementById('setup-banner').classList.add('hidden');
+  setSync('idle','офлайн');
+}
+
+// ── CLOUD SAVE ────────────────────────────────────────────────
+async function cloudSave(toast=true){
+  lSave();
+  if(!apiKey||!binId) return;
+  setSync('syncing','сохранение...');
+  try{
+    await binWrite();
+    pollSig = sig(tasks);
+    setSync('ok','сохранено');
+    if(toast) showToast('Сохранено ✓');
+  } catch {
+    setSync('err','ошибка сохранения');
+    if(toast) showToast('Сохранено локально');
+  }
+  setTimeout(()=>setSync('idle','онлайн'),3000);
+}
+
+// ── POLLING ───────────────────────────────────────────────────
+function startPolling(){
+  if(polling) clearInterval(polling);
+  polling = setInterval(async()=>{
+    if(!apiKey||!binId) return;
+    try{
+      const remote = await binRead();
+      const rs = sig(remote);
+      if(rs !== pollSig && pollSig !== ''){
+        tasks = remote; lSave();
+        pollSig = rs;
+        render();
+        setSync('ok','обновлено');
+        showToast('🔄 Обновлено с другого устройства');
+        setTimeout(()=>setSync('idle','онлайн'),4000);
+      }
+      if(!pollSig) pollSig = rs;
+    } catch{}
+  }, 10000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+function init(){
+  lLoad();
+  apiKey  = localStorage.getItem(LS_APIKEY);
+  binId   = localStorage.getItem(LS_BIN);
+  if(!tasks.length) tasks = SAMPLES.map(s=>({...s,id:uid(),done:false,created:Date.now()}));
+
+  if(apiKey){
+    document.getElementById('setup-banner').classList.add('hidden');
+    setSync('syncing','загрузка...');
+    (async()=>{
+      try{
+        const remote = await binRead();
+        if(remote.length){
+          tasks = remote; lSave();
+          pollSig = sig(tasks);
+          setSync('ok','синхронизировано');
+        } else {
+          await binWrite(); pollSig = sig(tasks);
+          setSync('ok','загружено');
+        }
+      } catch {
+        setSync('err','нет связи — офлайн');
+      }
+      render();
+      setTimeout(()=>setSync('idle','онлайн'),3000);
+      startPolling();
+    })();
+  } else {
+    setSync('idle','офлайн');
+  }
+  render();
+}
+
+// ── FILTER ────────────────────────────────────────────────────
+function setF(f,el){
+  curF=f;
+  document.querySelectorAll('.sb-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  closeMenu();render();
+}
+
+function filtered(){
+  const now=td(),q=document.getElementById('q').value.toLowerCase();
+  let list=tasks.filter(t=>{
+    if(q&&!t.title.toLowerCase().includes(q)&&!(t.desc||'').toLowerCase().includes(q)) return false;
+    if(curF==='all') return true;
+    if(curF==='today') return t.date===now&&!t.done;
+    if(curF==='overdue') return t.date&&t.date<now&&!t.done;
+    if(curF==='done') return t.done;
+    if(curF==='work') return t.cat==='work';
+    if(curF==='personal') return t.cat==='personal';
+    if(curF==='high') return t.priority==='high'&&!t.done;
+    if(curF==='medium') return t.priority==='medium'&&!t.done;
+    if(curF==='low') return t.priority==='low'&&!t.done;
+    return true;
+  });
+  const s=document.getElementById('sort').value;
+  if(s==='date') list.sort((a,b)=>{
+    if(a.done!==b.done) return a.done?1:-1;
+    return (a.date||'9999')>(b.date||'9999')?1:-1;
+  });
+  else if(s==='priority'){
+    const p={high:0,medium:1,low:2};
+    list.sort((a,b)=>{if(a.done!==b.done)return a.done?1:-1;return p[a.priority]-p[b.priority];});
+  }
+  else list.sort((a,b)=>a.title.localeCompare(b.title,'ru'));
+  return list;
+}
+
+function fmtDate(d){
+  if(!d) return'';
+  const dt=new Date(d+'T00:00:00'),now=new Date();now.setHours(0,0,0,0);
+  const diff=Math.round((dt-now)/86400000);
+  if(diff===0) return'Сегодня';if(diff===1) return'Завтра';if(diff===-1) return'Вчера';
+  return dt.toLocaleDateString('ru-RU',{day:'numeric',month:'short'});
+}
+
+// ── RENDER ────────────────────────────────────────────────────
+function render(){
+  const now=td(),list=filtered();
+  const active=tasks.filter(t=>!t.done);
+
+  document.getElementById('s-all').textContent=tasks.length;
+  document.getElementById('s-today').textContent=tasks.filter(t=>t.date===now&&!t.done).length;
+  document.getElementById('s-over').textContent=tasks.filter(t=>t.date&&t.date<now&&!t.done).length;
+  document.getElementById('s-done').textContent=tasks.filter(t=>t.done).length;
+
+  document.getElementById('c-all').textContent=tasks.length;
+  document.getElementById('c-today').textContent=tasks.filter(t=>t.date===now&&!t.done).length;
+  document.getElementById('c-over').textContent=tasks.filter(t=>t.date&&t.date<now&&!t.done).length;
+  document.getElementById('c-done').textContent=tasks.filter(t=>t.done).length;
+  document.getElementById('c-work').textContent=tasks.filter(t=>t.cat==='work'&&!t.done).length;
+  document.getElementById('c-personal').textContent=tasks.filter(t=>t.cat==='personal'&&!t.done).length;
+  document.getElementById('c-high').textContent=tasks.filter(t=>t.priority==='high'&&!t.done).length;
+  document.getElementById('c-medium').textContent=tasks.filter(t=>t.priority==='medium'&&!t.done).length;
+  document.getElementById('c-low').textContent=tasks.filter(t=>t.priority==='low'&&!t.done).length;
+
+  const el=document.getElementById('tlist');
+  if(!list.length){
+    el.innerHTML='<div class="empty"><div class="empty-ico">🌿</div><div class="empty-t">Задач нет</div><div style="font-size:13px;color:var(--t3)">Нажмите «+ Задача» чтобы добавить</div></div>';
+    return;
+  }
+
+  el.innerHTML=list.map(t=>{
+    const ov=t.date&&t.date<now&&!t.done;
+    const catB=t.cat==='work'?'<span class="badge bw">🏗 Стройка</span>':'<span class="badge bp">🏠 Быт</span>';
+    const priB=t.priority==='high'?'<span class="badge bh">Высокий</span>':t.priority==='medium'?'<span class="badge bm">Средний</span>':'<span class="badge bl">Низкий</span>';
+    const dateB=t.date?`<span class="bmeta${ov?' ov':''}"> ${ov?'⚠ ':'📅 '}${fmtDate(t.date)}${t.time?' · '+t.time:''}</span>`:'';
+    const whoB=t.assign?`<span class="bmeta"> 👤 ${esc(t.assign)}</span>`:'';
+    return `<div class="tcard p${t.priority[0]}${t.done?' done':''}">
+      <div class="tc-row">
+        <button class="chk${t.done?' on':''}" onclick="toggle('${t.id}')" aria-label="${t.done?'Вернуть':'Выполнить'}"></button>
+        <div class="tc-title">${esc(t.title)}</div>
+      </div>
+      ${t.desc?`<div class="tc-desc">${esc(t.desc)}</div>`:''}
+      <div class="tc-meta">${catB}${priB}${dateB}${whoB}</div>
+      <div class="tc-actions">
+        <button class="act" onclick="openModal('${t.id}')">✏ Изменить</button>
+        <button class="act del" onclick="del('${t.id}')">✕ Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── MODAL ─────────────────────────────────────────────────────
+function openModal(id){
+  editId=id||null;
+  document.getElementById('modal-ttl').textContent=id?'Редактировать':'Новая задача';
+  if(id){
+    const t=tasks.find(x=>x.id===id);
+    if(t){
+      document.getElementById('f-title').value=t.title;
+      document.getElementById('f-desc').value=t.desc||'';
+      document.getElementById('f-cat').value=t.cat;
+      document.getElementById('f-pri').value=t.priority;
+      document.getElementById('f-date').value=t.date||'';
+      document.getElementById('f-time').value=t.time||'';
+      document.getElementById('f-who').value=t.assign||'';
+    }
+  } else {
+    document.getElementById('f-title').value='';
+    document.getElementById('f-desc').value='';
+    document.getElementById('f-cat').value='work';
+    document.getElementById('f-pri').value='medium';
+    document.getElementById('f-date').value=td();
+    document.getElementById('f-time').value='';
+    document.getElementById('f-who').value='';
+  }
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('f-title').focus(),120);
+}
+function closeModal(){document.getElementById('overlay').classList.remove('open');editId=null}
+function bgClose(e){if(e.target===document.getElementById('overlay'))closeModal()}
+
+function saveTask(){
+  const title=document.getElementById('f-title').value.trim();
+  if(!title){showToast('Введите название задачи');return}
+  const t={
+    id:editId||uid(),title,
+    desc:document.getElementById('f-desc').value.trim(),
+    cat:document.getElementById('f-cat').value,
+    priority:document.getElementById('f-pri').value,
+    date:document.getElementById('f-date').value,
+    time:document.getElementById('f-time').value,
+    assign:document.getElementById('f-who').value.trim(),
+    done:editId?(tasks.find(x=>x.id===editId)||{}).done||false:false,
+    created:editId?(tasks.find(x=>x.id===editId)||{}).created||Date.now():Date.now(),
+  };
+  if(editId){const i=tasks.findIndex(x=>x.id===editId);if(i>=0)tasks[i]=t;}
+  else tasks.unshift(t);
+  closeModal();render();cloudSave();
+}
+
+function toggle(id){
+  const t=tasks.find(x=>x.id===id);if(!t)return;
+  t.done=!t.done;render();cloudSave(false);
+  if(t.done)showToast('Выполнено ✓');
+}
+
+function del(id){
+  if(!confirm('Удалить задачу?'))return;
+  tasks=tasks.filter(x=>x.id!==id);render();cloudSave(false);showToast('Удалено');
+}
+
+function clearDone(){
+  if(!tasks.some(t=>t.done)){showToast('Нет выполненных задач');return}
+  if(!confirm('Удалить все выполненные задачи?'))return;
+  tasks=tasks.filter(t=>!t.done);render();cloudSave(false);showToast('Выполненные удалены');
+}
+
+// ── MOBILE MENU ───────────────────────────────────────────────
+function toggleMenu(){
+  const sb=document.getElementById('sidebar');
+  const ov=document.getElementById('mob-overlay');
+  const isOpen=sb.classList.contains('mob-open');
+  sb.classList.toggle('mob-open',!isOpen);
+  ov.classList.toggle('show',!isOpen);
+}
+function closeMenu(){
+  document.getElementById('sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').classList.remove('show');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────
+function showToast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.classList.add('show');
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),2800);
+}
+
+// ── ALERTS ────────────────────────────────────────────────────
+function checkAlerts(){
+  const now=new Date(),ts=td();
+  const hh=String(now.getHours()).padStart(2,'0'),mm=String(now.getMinutes()).padStart(2,'0');
+  const cur=hh+':'+mm;
+  tasks.forEach(t=>{
+    if(t.done||!t.date||!t.time)return;
+    const k=t.id+'_'+t.date+'_'+t.time;
+    if(t.date===ts&&t.time===cur&&!fired.has(k)){
+      fired.add(k);showToast('🔔 '+t.title);
+      if(typeof Notification!=='undefined'&&Notification.permission==='granted')
+        new Notification('Bali Build Planner',{body:t.title});
+    }
+  });
+}
+setInterval(checkAlerts,30000);
+if(typeof Notification!=='undefined'&&Notification.permission==='default')
+  setTimeout(()=>Notification.requestPermission(),2000);
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+init();
+</script>
+</body>
+</html>
